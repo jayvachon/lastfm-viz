@@ -23,6 +23,30 @@ getLayers(function(layers) {
 	// console.log(layers.length);
 });
 
+function createLayer(name, callback) {
+
+	var layer = { name: name, values: [] };
+
+	getArtistPlayDates(name, 1, [], function(dates) {
+		
+		dates = _.flatten(dates);
+		dates = _.countBy(dates, function(d) { 
+			var d2 = strftime('%D', new Date(d*1000));
+			return d2;
+		});
+
+		var vals = _.map(dates, function(count, date) {
+			return { x: date, y: count };
+		});
+
+		layer.values.push(vals);
+
+		if (layers.length == artists.length) {
+			callback(layers);
+		}
+	});
+}
+
 function getLayers(callback) {
 
 	getArtists(1, [], function(artists) {
@@ -33,34 +57,7 @@ function getLayers(callback) {
 		for (var i = 0; i < artists.length; i++) {
 
 			var name = artists[i]['name'];
-
-			getArtistPlayDates(name, 1, [], function(dates) {
-				console.log(name);
-				dates = _.flatten(dates);
-				dates = _.countBy(dates, function(d) { 
-					var d2 = strftime('%D', new Date(d*1000));
-					return d2;
-				});
-
-				var values = _.map(dates, function(count, date) {
-					return { x: date, y: count };
-				});
-
-				var artist = _.find(layers, function(l) { return l.name == name; });
-				if (artist === undefined) {
-					layers.push({
-						name: name,
-						values: values
-					});
-				} else {
-					artist.values.push(values);
-					artist.values = _.flatten(artist.values);
-				}
-
-				if (layers.length == artists.length) {
-					callback(layers);
-				}
-			});
+			
 		}
 	});
 }
