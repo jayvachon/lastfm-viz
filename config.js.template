@@ -1,0 +1,8 @@
+var config = {
+	api_key: '',
+	secret: '',
+	api_url: '',
+	user: ''
+}
+
+module.exports = config;
