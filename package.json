@@ -1,0 +1,36 @@
+{
+  "name": "lastfm-stacklayout",
+  "version": "1.0.0",
+  "description": "generates a stack layout based on a user's plays",
+  "main": "main.js",
+  "dependencies": {
+    "d3": "^3.5.14",
+    "express": "^4.13.4",
+    "lastfm": "^0.9.2",
+    "request": "^2.69.0",
+    "strftime": "^0.9.2",
+    "underscore": "^1.8.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jayvachon/lastfm-viz.git"
+  },
+  "keywords": [
+    "lastfm",
+    "d3",
+    "artists",
+    "music",
+    "graph",
+    "visualization"
+  ],
+  "author": "appleslerp",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jayvachon/lastfm-viz/issues"
+  },
+  "homepage": "https://github.com/jayvachon/lastfm-viz#readme"
+}
