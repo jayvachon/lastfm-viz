@@ -5,16 +5,28 @@ var config = require('./config');
 var LastFmNode = require('lastfm').LastFmNode;
 var _ = require('underscore');
 var strftime = require('strftime');
+var express = require('express');
+var app = express();
 
 var lastfm = new LastFmNode({
 	api_key: config.api_key,
 	secret: config.secret
 });
 
+app.use(express.static('public'));
+app.set('views', './views')
+app.set('view engine', 'jade')
 
-getLayers(function(layers) {
-	console.log(layers);
-	console.log(layers.length);
+app.get('/', function (req, res) {
+	getLayers(function(layers) {
+		// console.log(layers);
+		// console.log(layers.length);
+		res.render('index', { message: layers.length, users: layers });
+	});
+});
+
+app.listen(3000, function () {
+	console.log('Listening at localhost:3000');
 });
 
 function getLayers(callback) {
