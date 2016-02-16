@@ -42,7 +42,7 @@ app.set('views', './views')
 app.set('view engine', 'jade')
 
 app.get('/', function (req, res) {
-	getLayers(5, -1, function(layers) {
+	getLayers(10, -1, function(layers) {
 		res.render('index', { message: layers.length + " artists", users: layers });
 	});
 });

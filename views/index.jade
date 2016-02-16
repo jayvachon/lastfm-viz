@@ -4,11 +4,58 @@ html(lang="en")
 		title= hi
 	body
 		h1= message
+		#chart_container
+			#chart.rickshaw_graph
+			#preview
+
 		script(type='text/javascript', src='https://d3js.org/d3.v3.min.js').
+		script(type='text/javascript', src='jquery.min.js').
+		script(type='text/javascript', src='rickshaw.min.js').
 		script(type='text/javascript').
 
 			var users = !{JSON.stringify(users)};
-			var n = users.length,
+			var palette = new Rickshaw.Color.Palette( { scheme: 'classic9' } );
+			var series = [];
+
+			for (var i = 0; i < users.length; i ++) {
+				series.push({
+					color: palette.color(),
+					data: users[i].values,
+					name: users[i].name
+				})
+			}
+
+			var graph = new Rickshaw.Graph({
+				element: document.getElementById("chart"),
+				offset: "silhouette",
+				width: 50000,
+				height: 500,
+				renderer: 'area',
+				stroke: true,
+				preserve: true,
+				series: series
+			});
+
+			graph.render();
+
+			/*var preview = new Rickshaw.Graph.RangeSlider( {
+				graph: graph,
+				element: document.getElementById('preview'),
+			} );*/
+
+			var ticksTreatment = 'glow';
+
+			var xAxis = new Rickshaw.Graph.Axis.Time( {
+				graph: graph,
+				ticksTreatment: ticksTreatment,
+				timeFixture: new Rickshaw.Fixtures.Time.Local()
+			} );
+
+			xAxis.render();
+
+			////////////////////////////////////////////////////////////
+
+			/*var n = users.length,
 				m = users[0].values.length;
 
 			var earliest = users[0].values[0].x;
@@ -16,7 +63,8 @@ html(lang="en")
 
 			var stack = d3.layout.stack()
 				.offset("silhouette")
-				.values(function(d) { return d.values; });
+				.values(function(d) { return d.values; })
+				.order("inside-out");
 
 			var layers = stack(users);
 
@@ -37,7 +85,12 @@ html(lang="en")
 			var axis = d3.svg.axis()
 				.scale(x)
 				.orient("bottom")
-				.ticks(100);
+				.ticks(100)
+				.tickFormat(function(d, i) { 
+					var date = new Date(d*8.64e7*7);
+					var t = d3.time.format("%B %Y");
+					return t(date);;
+				});
 				//- .tickValues(d3.map(users[0].values, function(d) { return d.x; }));
 
 			var area = d3.svg.area()
@@ -57,8 +110,8 @@ html(lang="en")
 			  .append("title")
 			    .text(function(d) { return d.name; });
 
-			//- svg.append("g")
-			//- 	.attr("class", "axis")
-			//- 	.attr("transform", "translate(0," + (height-25) + ")")
-			//- 	.call(axis);
+			svg.append("g")
+				.attr("class", "axis")
+				.attr("transform", "translate(0," + (height-25) + ")")
+				.call(axis);*/
 
