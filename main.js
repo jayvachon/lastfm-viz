@@ -6,22 +6,50 @@ var LastFmNode = require('lastfm').LastFmNode;
 var _ = require('underscore');
 var strftime = require('strftime');
 var express = require('express');
+var async = require('async');
 var app = express();
+// var fs = require('fs'); // TODO: cache
 
 var lastfm = new LastFmNode({
 	api_key: config.api_key,
 	secret: config.secret
 });
 
+function daysSinceEpoch(date) {
+	// actually "weeks since epoch"
+	return Math.floor(new Date(date*1000)/8.64e7/7);
+}
+
+var allDatesArr = [];
+var allDates = {
+	get dates () {
+		return allDatesArr;
+	},
+	set dates(dateRange) {
+		if (allDatesArr.length === 0) {
+			for (var i = dateRange.start; i < dateRange.end; i ++) {
+				allDatesArr.push({x: i, y: 0});
+			}
+		}
+		return allDatesArr;
+	},
+	start: function () { return allDatesArr[0].x; },
+	end: function() { return allDatesArr[allDatesArr.length-1].x; }
+}
+
 app.use(express.static('public'));
 app.set('views', './views')
 app.set('view engine', 'jade')
 
 app.get('/', function (req, res) {
-	getLayers(function(layers) {
-		// console.log(layers);
-		// console.log(layers.length);
-		res.render('index', { message: layers.length, users: layers });
+	getLayers(5, -1, function(layers) {
+		res.render('index', { message: layers.length + " artists", users: layers });
+	});
+});
+
+app.get('/quick', function(req, res) {
+	getLayers(1, 1, function(layers) {
+		res.render('index', { message: layers.length + " artists", users: layers });
 	});
 });
 
@@ -29,52 +57,59 @@ app.listen(3000, function () {
 	console.log('Listening at localhost:3000');
 });
 
-function getLayers(callback) {
+function getLayers(artistsLimit, tracksLimit, layersCallback) {
 
-	getArtists(1, [], function(artists) {
+	getDateRange(function(dateRange) {
 
-		artists = _.flatten(artists);
-		artists = _.map(artists, function(a) { return a['name']; });
+		getArtists(1, [], artistsLimit, function(artists) {
 
-		var layers = [];
+			artists = _.flatten(artists);
+			artists = _.map(artists, function(a) { return a['name']; });
 
-		for (var i = 0; i < artists.length; i++) {
+			var layers = [];
 
-			createLayer(artists[i], function(layer) {
-				layers.push(layer);
-				if (layers.length == artists.length)
-					callback(layers);
+			async.each(artists, function(artist, callback) {
+				createLayer(artist, dateRange, tracksLimit, function(layer) {
+					layers.push(layer);
+					callback();
+				});
+			}, function(err) {
+				layersCallback(layers);
 			});
-		}
+		});
 	});
 }
 
-function createLayer(name, callback) {
+function createLayer(name, dateRange, tracksLimit, callback) {
 
 	var layer = { name: name, values: [] };
 
-	getArtistPlayDates(name, 1, [], function(dates) {
-		
+	getArtistPlayDates(name, 1, [], tracksLimit, function(dates) {
+
+		allDates.dates = dateRange;
+		var ad = _.map(allDates.dates, _.clone);
+
 		dates = _.flatten(dates);
-		dates = _.countBy(dates, function(d) { 
-			var d2 = strftime('%D', new Date(d*1000));
-			return d2;
+		dates = _.countBy(dates, function(d) { return daysSinceEpoch(d); });
+		dates = _.map(dates, function(count, date) { return { x: parseInt(date), y: count }; });
+
+		var vals = _.map(ad, function(d) {
+			var counts = _.find(dates, function(c) { return c.x === d.x });
+			if (counts != undefined) {
+				d.y = counts.y;
+			}
+			return d;
 		});
 
-		var vals = _.map(dates, function(count, date) {
-			return { x: date, y: count };
-		});
-
-		layer.values.push(vals);
-
+		layer.values = vals;
 		callback(layer);
 	});
 }
 
 // Gets a list of all artists listened to
-function getArtists(index, artists, callback) {
+function getArtists(index, artists, artistsLimit, callback) {
 
-	var pageLimit = 2;
+	var pageLimit = artistsLimit;
 
 	lastfm.request('library.getArtists', {
 		user: config.user,
@@ -84,9 +119,9 @@ function getArtists(index, artists, callback) {
 				var pgArtists = data['artists']['artist'];
 				artists.push(pgArtists);
 				artists = _.flatten(artists);
-				if (pgArtists.length > 0 && index+1 < pageLimit) {
+				if (pgArtists.length > 0 && (pageLimit === -1 || index+1 < pageLimit)) {
 					// callback(artists);
-					getArtists(index+1, artists, callback);
+					getArtists(index+1, artists, artistsLimit, callback);
 				} else {
 					callback(artists);
 				}
@@ -99,9 +134,9 @@ function getArtists(index, artists, callback) {
 }
 
 // Gets the dates the artist had tracks played
-function getArtistPlayDates(name, index, dates, callback) {
+function getArtistPlayDates(name, index, dates, tracksLimit, callback) {
 
-	var pageLimit = 2;
+	var pageLimit = tracksLimit;
 
 	lastfm.request('user.getArtistTracks', {
 		user: config.user,
@@ -112,10 +147,10 @@ function getArtistPlayDates(name, index, dates, callback) {
 				var pgDates = data['artisttracks']['track'];
 				// var totalPages = data['artisttracks']['totalPages'];
 				dates.push(_.map(pgDates, function(d) { return d['date']['uts'] }));
-				if (pgDates.length > 0 && index+1 < pageLimit) {
+				if (pgDates.length > 0 && (pageLimit == -1 || index+1 < pageLimit)) {
 					// callback(dates);
 					// console.log(index + "/" + totalPages);
-					getArtistPlayDates(name, index+1, dates, callback);
+					getArtistPlayDates(name, index+1, dates, tracksLimit, callback);
 				} else {
 					callback(dates);
 				}	
@@ -127,13 +162,15 @@ function getArtistPlayDates(name, index, dates, callback) {
 	});
 }
 
-// unneeded?
 function getDateRange(callback) {
 	lastfm.request('user.getInfo', {
 		user: config.user,
 		handlers: {
 			success: function(data) {
-				callback(data['user']['registered']['#text'], Date.now());
+				callback({ 
+					start: daysSinceEpoch(data['user']['registered']['#text']), 
+					end: daysSinceEpoch(Date.now()/1000)
+				});
 			},
 			error: function(err) {
 				console.log("error: " + err.message);

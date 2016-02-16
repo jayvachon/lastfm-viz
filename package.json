@@ -4,6 +4,7 @@
   "description": "generates a stack layout based on a user's plays",
   "main": "main.js",
   "dependencies": {
+    "async": "^1.5.2",
     "d3": "^3.5.14",
     "express": "^4.13.4",
     "jade": "^1.11.0",
