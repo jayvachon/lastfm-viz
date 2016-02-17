@@ -2,6 +2,7 @@ doctype html
 html(lang="en")
 	head
 		title= hi
+		link(href='rickshaw.min.css', rel='stylesheet')
 	body
 		h1= message
 		#chart_container
@@ -18,9 +19,12 @@ html(lang="en")
 			var series = [];
 
 			for (var i = 0; i < users.length; i ++) {
+
+				var vals = users[i].values.map(function(d) { return { x: d.x*8.64e7*7/1000, y: d.y }; });
+				
 				series.push({
 					color: palette.color(),
-					data: users[i].values,
+					data: vals,
 					name: users[i].name
 				})
 			}
@@ -28,7 +32,7 @@ html(lang="en")
 			var graph = new Rickshaw.Graph({
 				element: document.getElementById("chart"),
 				offset: "silhouette",
-				width: 50000,
+				width: 45000,
 				height: 500,
 				renderer: 'area',
 				stroke: true,
@@ -36,22 +40,33 @@ html(lang="en")
 				series: series
 			});
 
-			graph.render();
+			
 
 			/*var preview = new Rickshaw.Graph.RangeSlider( {
 				graph: graph,
 				element: document.getElementById('preview'),
 			} );*/
 
-			var ticksTreatment = 'glow';
+			//- var ticksTreatment = 'glow';
+
+			var timeFixture = new Rickshaw.Fixtures.Time();
+			var timeUnit = {
+				seconds: 86400 * 30.5,
+				formatter: function(d) { return d3.time.format('%B %Y')(d); }
+			};
 
 			var xAxis = new Rickshaw.Graph.Axis.Time( {
 				graph: graph,
-				ticksTreatment: ticksTreatment,
-				timeFixture: new Rickshaw.Fixtures.Time.Local()
+				timeFixture: timeFixture,
+				timeUnit: timeUnit
 			} );
 
 			xAxis.render();
+
+			graph.render();
+
+			//- d3.select('svg').append("title")
+			  //- .text(function(d) { return d.name; });
 
 			////////////////////////////////////////////////////////////
 
